@@ -1,52 +1,29 @@
-FROM php:8.4-fpm-alpine
+FROM php:8.2-apache
 
-RUN apk add --no-cache \
-    curl \
-    git \
-    unzip \
-    libzip-dev \
-    libpng-dev \
-    libjpeg-turbo-dev \
-    freetype-dev \
-    oniguruma-dev \
-    nginx \
-    supervisor \
-    nodejs \
-    npm \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) \
-    pdo pdo_mysql mbstring zip gd opcache bcmath \
-    && rm -rf /var/cache/apk/*
+RUN apt-get update && apt-get install -y \
+    git curl libpng-dev libonig-dev libxml2-dev zip unzip nodejs npm \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+RUN a2enmod rewrite
 
-WORKDIR /app
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts
-
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-interaction --no-scripts --optimize-autoloader
-
+WORKDIR /var/www/html
 COPY . .
 
-RUN npm run build
+RUN npm ci && npm run build
 
-RUN mkdir -p storage/framework/cache/data \
-    storage/framework/sessions \
-    storage/framework/views \
-    storage/framework/testing \
-    storage/logs \
-    && chmod -R 775 storage bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache
+RUN composer install --no-interaction
 
-COPY docker/php.ini /usr/local/etc/php/conf.d/memorialmap.ini
-COPY docker/nginx.conf /etc/nginx/http.d/default.conf
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY docker/entrypoint.sh /entrypoint.sh
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-RUN chmod +x /entrypoint.sh
+RUN sed -i 's/Listen 80/Listen 7860/g' /etc/apache2/ports.conf
+RUN sed -i 's/:80/:7860/g' /etc/apache2/sites-available/000-default.conf
+RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
 
-EXPOSE 80
+RUN php artisan key:generate
 
-ENTRYPOINT ["/entrypoint.sh"]
+EXPOSE 7860
+
+CMD ["apache2-foreground"]
