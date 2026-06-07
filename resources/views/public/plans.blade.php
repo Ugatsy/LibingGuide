@@ -9,6 +9,10 @@
                 <p class="text-emerald-700 font-semibold text-sm tracking-widest uppercase mb-3">Pre-Need Plans</p>
                 <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Plan Ahead with Confidence</h1>
                 <p class="text-gray-600 max-w-2xl mx-auto">Explore our pre-need memorial and funeral plans. Compare features and pricing, and secure your family's peace of mind.</p>
+                <div class="mt-6 inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                    <span>Plans <strong>include a lot plus services</strong> (burial, funeral, or memorial). If you just want to purchase a lot without services, browse <a href="{{ route('public.lots') }}" class="underline font-medium hover:text-amber-900">Memorial Lots</a> instead.</span>
+                </div>
             </div>
 
             @if($plans->isEmpty())

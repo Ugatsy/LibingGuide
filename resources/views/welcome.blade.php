@@ -173,16 +173,16 @@
         </div>
     </section>
 
-    {{-- Inquire Section --}}
+    {{-- Inquire / Reserve Section --}}
     <section id="inquire" class="py-24 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid lg:grid-cols-2 gap-16 items-start">
                 <div>
-                    <p class="text-emerald-700 font-semibold text-sm tracking-widest uppercase mb-3">Inquire Now</p>
+                    <p class="text-emerald-700 font-semibold text-sm tracking-widest uppercase mb-3">Inquire / Reserve</p>
                     <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">We'd Love to Hear from You</h2>
                     <div class="w-16 h-1 bg-emerald-600 mb-6"></div>
                     <p class="text-gray-600 leading-relaxed mb-6">
-                        Whether you're looking for a memorial lot, have questions about our services, or want to learn more about Heritage Memorial Park, we're here to help. Fill out the form and our team will get back to you promptly.
+                        Whether you're just exploring options or ready to inquire about a specific memorial lot or plan, fill out the form below and our team will get back to you promptly.
                     </p>
                     <div class="space-y-4">
                         <div class="flex items-start gap-3">
@@ -199,21 +199,34 @@
                     @if(session('success'))
                         <div class="bg-emerald-100 text-emerald-800 p-4 rounded-lg mb-6 font-medium">{{ session('success') }}</div>
                     @endif
-                    <form method="POST" action="{{ route('public.inquire') }}" class="space-y-4">
+                    <form method="POST" action="{{ route('public.inquire') }}" x-data="{ showLotPicker: false }" class="space-y-4">
                         @csrf
+                        <div class="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+                            <p class="text-sm font-medium text-gray-700 mb-3">What brings you here?</p>
+                            <div class="flex flex-wrap gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="inquiry_type" value="general" @change="showLotPicker = false" checked class="text-emerald-600 focus:ring-emerald-500">
+                                    <span class="text-sm text-gray-700">Just inquiring</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="inquiry_type" value="specific" @change="showLotPicker = true" class="text-emerald-600 focus:ring-emerald-500">
+                                    <span class="text-sm text-gray-700">Interested in a specific lot</span>
+                                </label>
+                            </div>
+                        </div>
                         <div><label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label><input type="text" name="full_name" value="{{ old('full_name') }}" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
                         <div class="grid grid-cols-2 gap-4">
                             <div><label class="block text-sm font-medium text-gray-700 mb-1">Contact Number</label><input type="text" name="contact_number" value="{{ old('contact_number') }}" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
                             <div><label class="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" name="email" value="{{ old('email') }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
                         </div>
                         <div><label class="block text-sm font-medium text-gray-700 mb-1">Address</label><input type="text" name="address" value="{{ old('address') }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
-                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Lot Interest</label>
+                        <div x-show="showLotPicker" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Lot Interest</label>
                             <select name="lot_interest" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
                                 <option value="">Select lot type...</option>
                                 <option value="Garden Lot" @selected(old('lot_interest') === 'Garden Lot')>Garden Lot</option>
                                 <option value="Family Estate" @selected(old('lot_interest') === 'Family Estate')>Family Estate</option>
                                 <option value="Lawn Lot" @selected(old('lot_interest') === 'Lawn Lot')>Lawn Lot</option>
-                                <option value="Columbarium" @selected(old('lot_interest') === 'Columbarium')>Columbarium</option>
                             </select>
                         </div>
                         <div><label class="block text-sm font-medium text-gray-700 mb-1">Message</label><textarea name="message" rows="4" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500">{{ old('message') }}</textarea></div>

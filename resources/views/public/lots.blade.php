@@ -9,6 +9,10 @@
                 <p class="text-emerald-700 font-semibold text-sm tracking-widest uppercase mb-3">Memorial Lots</p>
                 <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Browse Available Memorial Lots</h1>
                 <p class="text-gray-600 max-w-2xl mx-auto">View our available lots on the interactive map and find the perfect resting place for your loved one.</p>
+                <div class="mt-6 inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                    <span>Just looking for a lot? You're in the right place. If you'd prefer a <strong>plan that includes a lot plus services</strong>, browse our <a href="{{ route('public.plans') }}" class="underline font-medium hover:text-amber-900">Pre-Need Plans</a> instead.</span>
+                </div>
             </div>
 
             <div class="grid lg:grid-cols-3 gap-8">
