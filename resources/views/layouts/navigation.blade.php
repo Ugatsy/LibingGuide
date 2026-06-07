@@ -7,18 +7,26 @@
                         <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
                     </a>
                 </div>
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                <div class="hidden space-x-6 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">{{ __('Dashboard') }}</x-nav-link>
-                    <x-nav-link :href="route('plots.index')" :active="request()->routeIs('plots.*')">{{ __('Plot Map') }}</x-nav-link>
                     <x-nav-link :href="route('clients.index')" :active="request()->routeIs('clients.*')">{{ __('Clients') }}</x-nav-link>
-                    <x-nav-link :href="route('contracts.index')" :active="request()->routeIs('contracts.*')">{{ __('Contracts') }}</x-nav-link>
-                    <x-nav-link :href="route('payments.index')" :active="request()->routeIs('payments.*')">{{ __('Payments') }}</x-nav-link>
-                    <x-nav-link :href="route('burials.index')" :active="request()->routeIs('burials.*')">{{ __('Burials') }}</x-nav-link>
-                    <x-nav-link :href="route('pre-need-plans.index')" :active="request()->routeIs('pre-need-plans.*')">{{ __('Pre-Need Plans') }}</x-nav-link>
-                    <x-nav-link :href="route('columbary-niches.index')" :active="request()->routeIs('columbary-niches.*')">{{ __('Columbary') }}</x-nav-link>
-                    <x-nav-link :href="route('burial-spots.index')" :active="request()->routeIs('burial-spots.*')">{{ __('Legacy Map') }}</x-nav-link>
-                    <x-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">{{ __('Notifications') }}</x-nav-link>
+                    <x-nav-link :href="route('plots.index')" :active="request()->routeIs('plots.*') || request()->routeIs('burials.*')">{{ __('Lots & Burials') }}</x-nav-link>
+                    <x-nav-link :href="route('contracts.index')" :active="request()->routeIs('contracts.*') || request()->routeIs('payments.*')">{{ __('Contracts & Billing') }}</x-nav-link>
+                    <div x-data="{ open: false }" @mouseleave="open = false" class="relative">
+                        <button @mouseenter="open = true" class="inline-flex items-center px-1 pt-1 text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 transition duration-150 ease-in-out h-16 border-b-2 border-transparent">
+                            {{ __('Services') }}
+                            <svg class="ms-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+                        </button>
+                        <div x-show="open" @mouseenter="open = true" @mouseleave="open = false" x-transition class="absolute left-0 mt-0 pt-1 w-56 z-50" x-cloak>
+                            <div class="bg-white rounded-lg shadow-lg ring-1 ring-black/5 py-2">
+                                <a href="{{ route('pre-need-plans.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 {{ request()->routeIs('pre-need-plans.*') ? 'bg-emerald-50 text-emerald-800 font-medium' : '' }}">Pre-Need Plans</a>
+                                <a href="{{ route('columbary-niches.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 {{ request()->routeIs('columbary-niches.*') ? 'bg-emerald-50 text-emerald-800 font-medium' : '' }}">Columbary Niches</a>
+                                <a href="{{ route('burial-spots.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 {{ request()->routeIs('burial-spots.*') ? 'bg-emerald-50 text-emerald-800 font-medium' : '' }}">Legacy Map</a>
+                            </div>
+                        </div>
+                    </div>
                     <x-nav-link :href="route('inquiries.index')" :active="request()->routeIs('inquiries.*')">{{ __('Inquiries') }}</x-nav-link>
+                    <x-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">{{ __('Notifications') }}</x-nav-link>
                 </div>
             </div>
             <div class="hidden sm:flex sm:items-center sm:ms-6">
@@ -58,15 +66,17 @@
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">{{ __('Dashboard') }}</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('plots.index')" :active="request()->routeIs('plots.*')">{{ __('Plot Map') }}</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('clients.index')" :active="request()->routeIs('clients.*')">{{ __('Clients') }}</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('contracts.index')" :active="request()->routeIs('contracts.*')">{{ __('Contracts') }}</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('payments.index')" :active="request()->routeIs('payments.*')">{{ __('Payments') }}</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('burials.index')" :active="request()->routeIs('burials.*')">{{ __('Burials') }}</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('plots.index')" :active="request()->routeIs('plots.*') || request()->routeIs('burials.*')">{{ __('Lots & Burials') }}</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('contracts.index')" :active="request()->routeIs('contracts.*') || request()->routeIs('payments.*')">{{ __('Contracts & Billing') }}</x-responsive-nav-link>
+            <div class="pt-2 pb-1">
+                <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Services</p>
+            </div>
             <x-responsive-nav-link :href="route('pre-need-plans.index')" :active="request()->routeIs('pre-need-plans.*')">{{ __('Pre-Need Plans') }}</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('columbary-niches.index')" :active="request()->routeIs('columbary-niches.*')">{{ __('Columbary') }}</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">{{ __('Notifications') }}</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('columbary-niches.index')" :active="request()->routeIs('columbary-niches.*')">{{ __('Columbary Niches') }}</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('burial-spots.index')" :active="request()->routeIs('burial-spots.*')">{{ __('Legacy Map') }}</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('inquiries.index')" :active="request()->routeIs('inquiries.*')">{{ __('Inquiries') }}</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">{{ __('Notifications') }}</x-responsive-nav-link>
         </div>
         <div class="pt-4 pb-1 border-t border-gray-200">
             <div class="px-4">
