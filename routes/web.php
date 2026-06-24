@@ -72,10 +72,11 @@ Route::get('/reserve/{type}', [PublicBookingController::class, 'reserveForm'])->
 Route::post('/reserve', [PublicBookingController::class, 'reserveStore'])->name('public.reserve.store');
 Route::get('/reservation-confirmed', [PublicBookingController::class, 'confirmation'])->name('public.reserve.confirmation');
 
+Route::get('/cemetery/polygon', [CemeteryMapController::class, 'getPolygon'])->name('cemetery.polygon.get');
+
 Route::middleware('auth')->group(function () {
     Route::get('/cemetery/admin', [CemeteryMapController::class, 'adminIndex'])->name('cemetery.admin');
     Route::post('/cemetery/polygon', [CemeteryMapController::class, 'savePolygon'])->name('cemetery.polygon.save');
-    Route::get('/cemetery/polygon', [CemeteryMapController::class, 'getPolygon'])->name('cemetery.polygon.get');
     Route::post('/cemetery/graves', [CemeteryMapController::class, 'saveGrave'])->name('cemetery.graves.save');
     Route::get('/cemetery/graves', [CemeteryMapController::class, 'getGraves'])->name('cemetery.graves.list');
     Route::post('/cemetery/import', [CemeteryMapController::class, 'importGeoJson'])->name('cemetery.import');

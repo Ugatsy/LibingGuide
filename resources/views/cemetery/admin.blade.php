@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Cemetery Boundary Tool</h2>
-            <a href="{{ route('cemetery.map') }}" class="text-sm text-emerald-700 hover:text-emerald-600 underline">View Public Map</a>
+            <a href="{{ route('public.find') }}" class="text-sm text-emerald-700 hover:text-emerald-600 underline">View Public Map</a>
         </div>
     </x-slot>
 

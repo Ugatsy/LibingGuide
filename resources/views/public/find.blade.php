@@ -76,7 +76,7 @@
             <div id="detailContent"></div>
         </div>
     </div>
-    <style> main { padding: 0; } </style>
+    <style> main { padding: 0; } footer { display: none; } </style>
 
     @push('scripts')
     <script>
@@ -121,6 +121,7 @@
                 if (polyData && polyData.geojson) {
                     cemeteryPolygon = polyData.geojson;
                     drawCemeteryPolygon();
+                    if (userLocation) checkLocationAndUpdate();
                 }
             } catch (e) {
                 console.error('Failed to load cemetery data', e);
@@ -241,7 +242,12 @@
                 const poly = turf.polygon(cemeteryPolygon.coordinates);
                 isInside = turf.booleanPointInPolygon(pt, poly);
             } else {
-                isInside = true;
+                isInside = false;
+                updateStatus('Loading cemetery boundaries...', 'unavailable', false);
+                searchContainer.className = 'search-container disabled';
+                searchBox.disabled = true;
+                outsideOverlay.style.display = 'block';
+                return;
             }
 
             if (isInside) {
@@ -268,6 +274,13 @@
                 return;
             }
             searchTimeout = setTimeout(() => performSearch(q), 200);
+        });
+
+        searchBox.addEventListener('focus', function() {
+            const q = this.value.trim();
+            if (q.length >= 2) {
+                performSearch(q);
+            }
         });
 
         async function performSearch(q) {
