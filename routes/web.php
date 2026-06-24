@@ -15,6 +15,8 @@ use App\Http\Controllers\PreNeedPlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicSearchController;
 use App\Http\Controllers\PublicBookingController;
+use App\Http\Controllers\CemeteryMapController;
+use App\Http\Controllers\PathController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -58,6 +60,7 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/find', [PublicSearchController::class, 'index'])->name('public.find');
 Route::get('/find/search', [PublicSearchController::class, 'search'])->name('public.search');
+Route::get('/find/markers', [PublicSearchController::class, 'allMarkers'])->name('public.markers');
 
 Route::post('/inquire', [InquiryController::class, 'publicStore'])->name('public.inquire');
 
@@ -68,5 +71,27 @@ Route::get('/lots', [PublicBookingController::class, 'lots'])->name('public.lots
 Route::get('/reserve/{type}', [PublicBookingController::class, 'reserveForm'])->name('public.reserve.form');
 Route::post('/reserve', [PublicBookingController::class, 'reserveStore'])->name('public.reserve.store');
 Route::get('/reservation-confirmed', [PublicBookingController::class, 'confirmation'])->name('public.reserve.confirmation');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/cemetery/admin', [CemeteryMapController::class, 'adminIndex'])->name('cemetery.admin');
+    Route::post('/cemetery/polygon', [CemeteryMapController::class, 'savePolygon'])->name('cemetery.polygon.save');
+    Route::get('/cemetery/polygon', [CemeteryMapController::class, 'getPolygon'])->name('cemetery.polygon.get');
+    Route::post('/cemetery/graves', [CemeteryMapController::class, 'saveGrave'])->name('cemetery.graves.save');
+    Route::get('/cemetery/graves', [CemeteryMapController::class, 'getGraves'])->name('cemetery.graves.list');
+    Route::post('/cemetery/import', [CemeteryMapController::class, 'importGeoJson'])->name('cemetery.import');
+    Route::get('/cemetery/seed', [CemeteryMapController::class, 'seedGraves'])->name('cemetery.seed');
+
+    Route::get('/paths', [PathController::class, 'index'])->name('paths.index');
+    Route::post('/paths/nodes', [PathController::class, 'storeNode'])->name('paths.nodes.store');
+    Route::delete('/paths/nodes/{node}', [PathController::class, 'destroyNode'])->name('paths.nodes.destroy');
+    Route::post('/paths/edges', [PathController::class, 'storeEdge'])->name('paths.edges.store');
+    Route::delete('/paths/edges/{edge}', [PathController::class, 'destroyEdge'])->name('paths.edges.destroy');
+    Route::get('/paths/find', [PathController::class, 'findPath'])->name('paths.find');
+    Route::get('/paths/export', [PathController::class, 'export'])->name('paths.export');
+    Route::post('/paths/import', [PathController::class, 'import'])->name('paths.import');
+    Route::post('/paths/reset', [PathController::class, 'resetAll'])->name('paths.reset');
+});
+
+Route::get('/cemetery/find-path', [CemeteryMapController::class, 'findPathToGrave'])->name('cemetery.find-path');
 
 require __DIR__.'/auth.php';

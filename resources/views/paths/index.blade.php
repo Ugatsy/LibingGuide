@@ -169,7 +169,6 @@
             function setMode(newMode) {
                 mode = newMode;
                 selectedNode = null;
-                lastDrawnNode = null;
                 drawCounter = 0;
                 document.getElementById('modeIndicator').textContent = mode.toUpperCase();
 

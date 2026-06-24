@@ -22,6 +22,8 @@
                                 <a href="{{ route('pre-need-plans.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 {{ request()->routeIs('pre-need-plans.*') ? 'bg-emerald-50 text-emerald-800 font-medium' : '' }}">Pre-Need Plans</a>
                                 <a href="{{ route('columbary-niches.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 {{ request()->routeIs('columbary-niches.*') ? 'bg-emerald-50 text-emerald-800 font-medium' : '' }}">Columbary Niches</a>
                                 <a href="{{ route('burial-spots.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 {{ request()->routeIs('burial-spots.*') ? 'bg-emerald-50 text-emerald-800 font-medium' : '' }}">Legacy Map</a>
+                                <a href="{{ route('cemetery.admin') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 {{ request()->routeIs('cemetery.*') ? 'bg-emerald-50 text-emerald-800 font-medium' : '' }}">Cemetery Map</a>
+                                <a href="{{ route('paths.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 {{ request()->routeIs('paths.*') ? 'bg-emerald-50 text-emerald-800 font-medium' : '' }}">Pathways</a>
                             </div>
                         </div>
                     </div>
@@ -75,6 +77,8 @@
             <x-responsive-nav-link :href="route('pre-need-plans.index')" :active="request()->routeIs('pre-need-plans.*')">{{ __('Pre-Need Plans') }}</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('columbary-niches.index')" :active="request()->routeIs('columbary-niches.*')">{{ __('Columbary Niches') }}</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('burial-spots.index')" :active="request()->routeIs('burial-spots.*')">{{ __('Legacy Map') }}</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('cemetery.admin')" :active="request()->routeIs('cemetery.*')">{{ __('Cemetery Map') }}</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('paths.index')" :active="request()->routeIs('paths.*')">{{ __('Pathways') }}</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('inquiries.index')" :active="request()->routeIs('inquiries.*')">{{ __('Inquiries') }}</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">{{ __('Notifications') }}</x-responsive-nav-link>
         </div>
