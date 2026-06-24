@@ -6,14 +6,14 @@
         <div class="flex items-center justify-between h-16 lg:h-20">
             <a href="{{ route('home') }}" class="flex items-center gap-3 shrink-0">
                 <img src="{{ asset('images/heritage-logo.png') }}" alt="Heritage Memorial Park" class="h-10 w-auto">
-                <span class="text-xl font-bold tracking-tight transition-colors" :class="scrolled ? 'text-gray-900' : 'text-white'">Heritage Memorial Park</span>
+                <span class="text-xl font-bold tracking-tight text-gray-900">Heritage Memorial Park</span>
             </a>
 
             <div class="hidden lg:flex items-center gap-8">
-                <a href="{{ route('home') }}#about" class="text-sm font-medium transition-colors" :class="scrolled ? 'text-gray-600 hover:text-emerald-800' : 'text-white/80 hover:text-white'">About</a>
+                <a href="{{ route('home') }}#about" class="text-sm font-medium text-gray-600 hover:text-emerald-800 transition-colors">About</a>
 
                 <div x-data="{ open: false }" @mouseleave="open = false" class="relative">
-                    <button @mouseenter="open = true" class="inline-flex items-center text-sm font-medium transition-colors" :class="scrolled ? 'text-gray-600 hover:text-emerald-800' : 'text-white/80 hover:text-white'">
+                    <button @mouseenter="open = true" class="inline-flex items-center text-sm font-medium text-gray-600 hover:text-emerald-800 transition-colors">
                         Our Services
                         <svg class="ms-1 h-4 w-4 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
                     </button>
@@ -36,18 +36,17 @@
                     </div>
                 </div>
 
-                <a href="{{ route('public.find') }}" class="text-sm font-medium transition-colors" :class="scrolled ? 'text-gray-600 hover:text-emerald-800' : 'text-white/80 hover:text-white'">Find a Loved One</a>
-                <a href="{{ route('home') }}#contact" class="text-sm font-medium transition-colors" :class="scrolled ? 'text-gray-600 hover:text-emerald-800' : 'text-white/80 hover:text-white'">Contact</a>
+                <a href="{{ route('public.find') }}" class="text-sm font-medium text-gray-600 hover:text-emerald-800 transition-colors">Find a Loved One</a>
+                <a href="{{ route('home') }}#contact" class="text-sm font-medium text-gray-600 hover:text-emerald-800 transition-colors">Contact</a>
 
                 @auth
                     <a href="{{ route('dashboard') }}" class="inline-flex items-center px-4 py-2 bg-emerald-700 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition-colors shadow-sm">Dashboard</a>
                 @else
-                    <a href="{{ route('login') }}" class="inline-flex items-center px-4 py-2 border-2 font-semibold rounded-lg transition-colors"
-                       :class="scrolled ? 'border-emerald-700 text-emerald-700 hover:bg-emerald-50' : 'border-white/60 text-white hover:bg-white/10'">Staff Login</a>
+                    <a href="{{ route('login') }}" class="inline-flex items-center px-4 py-2 border-2 border-emerald-700 text-emerald-700 font-semibold rounded-lg hover:bg-emerald-50 transition-colors">Staff Login</a>
                 @endauth
             </div>
 
-            <button @click="mobileOpen = !mobileOpen" class="lg:hidden p-2 rounded-lg transition-colors" :class="scrolled ? 'text-gray-600 hover:bg-gray-100' : 'text-white/80 hover:bg-white/10'">
+            <button @click="mobileOpen = !mobileOpen" class="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path :class="{ 'hidden': mobileOpen, 'block': !mobileOpen }" class="block" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                     <path :class="{ 'block': mobileOpen, 'hidden': !mobileOpen }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12" />
