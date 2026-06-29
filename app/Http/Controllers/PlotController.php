@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cemetery;
 use App\Models\Plot;
 use App\Http\Requests\StorePlotRequest;
 use Illuminate\Http\Request;
@@ -17,21 +18,34 @@ class PlotController extends Controller
             'section' => $p->section,
             'lat' => $p->lat,
             'lng' => $p->lng,
+            'shape' => $p->shape,
+            'lot_type' => $p->lot_type,
+            'dimension' => $p->dimension,
             'status' => $p->status,
             'burials_count' => $p->burials_count,
             'capacity' => $p->capacity,
+            'current_occupants' => $p->current_occupants,
+            'price' => $p->price,
         ]);
-        return view('plots.index', compact('plots', 'plotData'));
+        $cemetery = Cemetery::with('polygon')->first();
+        $boundary = $cemetery?->polygon?->geojson;
+        return view('plots.index', compact('plots', 'plotData', 'boundary'));
     }
 
     public function create()
     {
-        return view('plots.create');
+        $cemetery = Cemetery::with('polygon')->first();
+        $boundary = $cemetery?->polygon?->geojson;
+        return view('plots.create', compact('boundary'));
     }
 
     public function store(StorePlotRequest $request)
     {
-        $plot = Plot::create($request->validated());
+        $data = $request->validated();
+        if (isset($data['shape']) && is_string($data['shape'])) {
+            $data['shape'] = json_decode($data['shape'], true);
+        }
+        $plot = Plot::create($data);
         if ($request->isJson()) {
             return response()->json(['id' => $plot->id, 'plot_number' => $plot->plot_number], 201);
         }
@@ -41,17 +55,25 @@ class PlotController extends Controller
     public function show(Plot $plot)
     {
         $plot->load('burials', 'contracts.client');
-        return view('plots.show', compact('plot'));
+        $cemetery = Cemetery::with('polygon')->first();
+        $boundary = $cemetery?->polygon?->geojson;
+        return view('plots.show', compact('plot', 'boundary'));
     }
 
     public function edit(Plot $plot)
     {
-        return view('plots.edit', compact('plot'));
+        $cemetery = Cemetery::with('polygon')->first();
+        $boundary = $cemetery?->polygon?->geojson;
+        return view('plots.edit', compact('plot', 'boundary'));
     }
 
     public function update(StorePlotRequest $request, Plot $plot)
     {
-        $plot->update($request->validated());
+        $data = $request->validated();
+        if (isset($data['shape']) && is_string($data['shape'])) {
+            $data['shape'] = json_decode($data['shape'], true);
+        }
+        $plot->update($data);
         return redirect()->route('plots.index')->with('success', 'Plot updated.');
     }
 

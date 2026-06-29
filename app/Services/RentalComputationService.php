@@ -6,6 +6,12 @@ class RentalComputationService
 {
     const NEW_LOT_FEE = 2000;
 
+    const ORDINANCE_PERIODS = [
+        'pre_2002'    => ['label' => 'Before 2002', 'max_year' => 2001],
+        '2002_2013'   => ['label' => '2002 – 2013', 'max_year' => 2013],
+        '2013_present' => ['label' => '2013 – Present', 'max_year' => null],
+    ];
+
     const INDIVIDUAL_RATES = [
         ['max_year' => 2001, 'annual' => 20,  'decade' => 200],
         ['max_year' => 2013, 'annual' => 70,  'decade' => 700],
@@ -17,6 +23,52 @@ class RentalComputationService
         ['max_year' => 2013, 'annual' => 28],
         ['max_year' => null, 'annual' => 80],
     ];
+
+    public static function ordinancePeriods(): array
+    {
+        return self::ORDINANCE_PERIODS;
+    }
+
+    public static function rateForPeriod(string $ordinancePeriod, string $lotType): array
+    {
+        $period = self::ORDINANCE_PERIODS[$ordinancePeriod] ?? self::ORDINANCE_PERIODS['2013_present'];
+        $rates = $lotType === 'family' ? self::FAMILY_RATES : self::INDIVIDUAL_RATES;
+
+        foreach ($rates as $rate) {
+            if (($period['max_year'] === null && $rate['max_year'] === null) ||
+                ($period['max_year'] !== null && $rate['max_year'] === $period['max_year'])) {
+                return $rate;
+            }
+        }
+
+        return end($rates);
+    }
+
+    public function computeRenewalByOrdinance(string $ordinancePeriod, string $lotType, ?float $area = null, int $termYears = 10): array
+    {
+        $rate = self::rateForPeriod($ordinancePeriod, $lotType);
+        $isFamily = $lotType === 'family';
+
+        if ($isFamily) {
+            $annual = round(($area ?? 1) * $rate['annual'], 2);
+            $total = round($annual * $termYears, 2);
+            $breakdown = number_format($area ?? 1, 2) . ' sqm × ₱' . $rate['annual'] . '/sqm/yr × ' . $termYears . ' yrs = ₱' . number_format($total, 2);
+        } else {
+            $annual = (float) $rate['annual'];
+            $total = $annual * $termYears;
+            $breakdown = '₱' . $annual . '/yr × ' . $termYears . ' yrs = ₱' . number_format($total, 2);
+        }
+
+        return [
+            'type' => 'renewal',
+            'ordinance_period' => $ordinancePeriod,
+            'fee' => $total,
+            'years' => $termYears,
+            'annual' => $annual,
+            'annual_rate' => (float) $rate['annual'],
+            'breakdown' => $breakdown,
+        ];
+    }
 
     public function computeBackRent(int $yearEstablished, string $lotType, ?float $area = null): array
     {

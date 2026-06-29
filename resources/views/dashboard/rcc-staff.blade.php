@@ -49,12 +49,12 @@
         </div>
     </div>
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-        <div class="text-sm font-medium text-gray-500">Pending Approvals</div>
+        <div class="text-sm font-medium text-gray-500">Pending Physical Signatures</div>
         <div class="mt-2 text-3xl font-bold text-amber-600">{{ $pendingTreasurer + $pendingMayor }}</div>
         <div class="mt-1 text-sm">
-            <span class="text-amber-600">{{ $pendingTreasurer }} treasurer</span>
+            <span class="text-amber-600">{{ $pendingTreasurer }} Treasurer</span>
             <span class="mx-1 text-gray-400">·</span>
-            <span class="text-amber-600">{{ $pendingMayor }} mayor</span>
+            <span class="text-amber-600">{{ $pendingMayor }} Mayor</span>
         </div>
     </div>
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">

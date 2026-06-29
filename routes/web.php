@@ -35,7 +35,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::middleware(['auth', 'role:admin'])->group(function () {
+Route::middleware(['auth', 'role:super_admin'])->group(function () {
     Route::resource('burial-spots', BurialSpotController::class);
     Route::patch('burial-spots/{burialSpot}/position', [BurialSpotController::class, 'updatePosition'])
          ->name('burial-spots.position');
@@ -53,8 +53,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('burials/{burial}/approve', [BurialController::class, 'approve'])->name('burials.approve');
     Route::resource('burial-permits', BurialPermitController::class);
     Route::post('burial-permits/compute-rental', [BurialPermitController::class, 'computeRental'])->name('burial-permits.compute-rental');
-    Route::patch('contracts/{contract}/approve-treasurer', [ContractController::class, 'approveTreasurer'])->name('contracts.approve-treasurer')->middleware('role:treasurer');
-    Route::patch('contracts/{contract}/approve-mayor', [ContractController::class, 'approveMayor'])->name('contracts.approve-mayor')->middleware('role:mayor');
+    Route::patch('contracts/{contract}/approve-treasurer', [ContractController::class, 'approveTreasurer'])->name('contracts.approve-treasurer');
+    Route::patch('contracts/{contract}/approve-mayor', [ContractController::class, 'approveMayor'])->name('contracts.approve-mayor');
     Route::get('/deceased', [DeceasedController::class, 'index'])->name('deceased.index');
     Route::get('/client-notifications', [App\Http\Controllers\ClientNotificationController::class, 'index'])->name('client-notifications.index');
     Route::post('/client-notifications/send-manual', [App\Http\Controllers\ClientNotificationController::class, 'sendManual'])->name('client-notifications.send-manual');
@@ -82,10 +82,14 @@ Route::post('/reserve', [PublicBookingController::class, 'reserveStore'])->name(
 Route::get('/reservation-confirmed', [PublicBookingController::class, 'confirmation'])->name('public.reserve.confirmation');
 
 Route::get('/cemetery/polygon', [CemeteryMapController::class, 'getPolygon'])->name('cemetery.polygon.get');
+Route::get('/cemetery/list', [CemeteryMapController::class, 'getCemeteries'])->name('cemetery.list');
 
-Route::middleware(['auth', 'role:admin'])->group(function () {
+Route::middleware(['auth', 'role:super_admin,engr'])->group(function () {
     Route::get('/cemetery/admin', [CemeteryMapController::class, 'adminIndex'])->name('cemetery.admin');
     Route::post('/cemetery/polygon', [CemeteryMapController::class, 'savePolygon'])->name('cemetery.polygon.save');
+    Route::post('/cemetery/save', [CemeteryMapController::class, 'saveCemetery'])->name('cemetery.save');
+    Route::put('/cemetery/{cemetery}', [CemeteryMapController::class, 'updateCemetery'])->name('cemetery.update');
+    Route::delete('/cemetery/{cemetery}', [CemeteryMapController::class, 'deleteCemetery'])->name('cemetery.delete');
     Route::post('/cemetery/graves', [CemeteryMapController::class, 'saveGrave'])->name('cemetery.graves.save');
     Route::get('/cemetery/graves', [CemeteryMapController::class, 'getGraves'])->name('cemetery.graves.list');
     Route::post('/cemetery/import', [CemeteryMapController::class, 'importGeoJson'])->name('cemetery.import');

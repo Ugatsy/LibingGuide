@@ -15,8 +15,8 @@
                         </select>
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700">Contract Type</label>
-                        <select name="contract_type" id="contract_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label class="block text-sm font-medium text-gray-700">Product Type</label>
+                        <select id="product_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="lot">Lot / Burial Plot</option>
                             <option value="columbary">Columbary Niche</option>
                             <option value="plan">Pre-Need Plan</option>
@@ -27,16 +27,16 @@
                         <div class="mb-4 grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Plot</label>
-                                <select name="plot_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <select name="plot_id" id="plot_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select plot…</option>
                                     @foreach($plots as $plot)
-                                        <option value="{{ $plot->id }}" data-price="{{ $plot->price }}">{{ $plot->plot_number }} ({{ $plot->section ?? 'No section' }} — ₱{{ number_format($plot->price, 2) }})</option>
+                                        <option value="{{ $plot->id }}" data-price="{{ $plot->price }}">{{ $plot->plot_number }} ({{ $plot->section ?? 'No section' }})</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Lot Type</label>
-                                <select name="lot_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <select name="lot_type" id="lot_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="individual">Individual Lot</option>
                                     <option value="family">Family Lot</option>
                                 </select>
@@ -44,17 +44,29 @@
                         </div>
                         <div class="mb-4 grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Contract Type (Lease)</label>
+                                <label class="block text-sm font-medium text-gray-700">Lease Type</label>
                                 <select name="contract_type" id="lease_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="new">New (₱2,000 — 10 years)</option>
                                     <option value="renewal">Renewal</option>
                                 </select>
                             </div>
-                            <div id="area-field">
+                            <div id="area-field" style="display:none;">
                                 <label class="block text-sm font-medium text-gray-700">Lot Area (sqm)</label>
-                                <input type="number" step="0.01" name="lot_area" value="{{ old('lot_area') }}" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <input type="number" step="0.01" name="lot_area" id="lot_area" value="{{ old('lot_area') }}" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                         </div>
+
+                        <div id="ordinance-field" class="mb-4" style="display:none;">
+                            <label class="block text-sm font-medium text-gray-700">Ordinance Period (Renewal Rate)</label>
+                            <select name="ordinance_period" id="ordinance_period" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">Select period…</option>
+                                <option value="pre_2002">Before 2002 — Individual ₱20/yr · Family ₱8/sqm/yr</option>
+                                <option value="2002_2013">2002 – 2013 — Individual ₱70/yr · Family ₱28/sqm/yr</option>
+                                <option value="2013_present">2013 – Present — Individual ₱200/yr · Family ₱80/sqm/yr</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Select the ordinance period that applies to this renewal.</p>
+                        </div>
+
                         <div class="mb-4">
                             <label class="block text-sm font-medium text-gray-700">Dimension / Location</label>
                             <input type="text" name="dimension" value="{{ old('dimension') }}" placeholder="e.g. 2m × 3m, Section A, Row 5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -72,6 +84,7 @@
                         <div class="mb-4 p-4 bg-gray-50 rounded-lg hidden" id="rental-computation">
                             <h4 class="font-medium text-sm text-gray-700 mb-2">Rental Fee Computation</h4>
                             <div id="computation-result" class="text-sm"></div>
+                            <button type="button" id="apply-rental" class="mt-2 text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded hover:bg-indigo-200 hidden">Apply to Total Amount</button>
                         </div>
                     </div>
 
@@ -138,59 +151,125 @@
         </div>
     </div>
     <script>
-        function toggleContractType() {
-            const t = document.getElementById('contract_type').value;
+        function toggleProductType() {
+            const t = document.getElementById('product_type').value;
             document.getElementById('plot-fields').style.display = t === 'lot' ? 'block' : 'none';
             document.getElementById('columbary-field').style.display = t === 'columbary' ? 'block' : 'none';
             document.getElementById('plan-field').style.display = t === 'plan' ? 'block' : 'none';
         }
-        document.getElementById('contract_type')?.addEventListener('change', toggleContractType);
+        document.getElementById('product_type')?.addEventListener('change', toggleProductType);
         document.getElementById('payment_type')?.addEventListener('change', function() {
             document.getElementById('installment-fields').style.display = this.value === 'installment' ? 'block' : 'none';
         });
 
         function toggleLeaseFields() {
-            const lotType = document.querySelector('[name="lot_type"]')?.value;
+            const lotType = document.getElementById('lot_type')?.value;
             const areaField = document.getElementById('area-field');
-            if (areaField) {
-                areaField.style.display = lotType === 'family' ? 'block' : 'none';
+            areaField.style.display = lotType === 'family' ? 'block' : 'none';
+            if (lotType !== 'family') {
+                document.getElementById('lot_area').value = '';
             }
+            computeRental();
         }
-        document.querySelector('[name="lot_type"]')?.addEventListener('change', toggleLeaseFields);
+        document.getElementById('lot_type')?.addEventListener('change', toggleLeaseFields);
+
+        function toggleOrdinanceField() {
+            const leaseType = document.getElementById('lease_type')?.value;
+            const field = document.getElementById('ordinance-field');
+            field.style.display = leaseType === 'renewal' ? 'block' : 'none';
+            if (leaseType !== 'renewal') {
+                document.getElementById('ordinance_period').value = '';
+            }
+            computeRental();
+        }
+        document.getElementById('lease_type')?.addEventListener('change', toggleOrdinanceField);
+        document.getElementById('ordinance_period')?.addEventListener('change', computeRental);
+        document.getElementById('lot_area')?.addEventListener('change', computeRental);
+        document.getElementById('lot_area')?.addEventListener('input', computeRental);
 
         function computeRental() {
             const leaseType = document.getElementById('lease_type')?.value;
-            if (leaseType !== 'renewal') return;
+            const lotType = document.getElementById('lot_type')?.value;
+            const area = parseFloat(document.getElementById('lot_area')?.value) || 0;
+            const ordinancePeriod = document.getElementById('ordinance_period')?.value;
 
-            const lotType = document.querySelector('[name="lot_type"]')?.value;
-            const area = parseFloat(document.querySelector('[name="lot_area"]')?.value) || 0;
+            const resultEl = document.getElementById('rental-computation');
+            const resultDiv = document.getElementById('computation-result');
+            const applyBtn = document.getElementById('apply-rental');
+
+            if (leaseType === 'new') {
+                resultEl.style.display = 'block';
+                resultDiv.innerHTML = '<div class="text-green-700 font-medium">New Lot — Fixed Rate</div>' +
+                    '<div class="mt-1">₱2,000.00 for 10 years (renewable)</div>' +
+                    '<div class="mt-2 font-semibold text-green-800">Total: ₱2,000.00</div>';
+                applyBtn.classList.remove('hidden');
+                applyBtn.dataset.amount = '2000';
+                return;
+            }
+
+            if (leaseType === 'renewal' && !ordinancePeriod) {
+                resultEl.style.display = 'none';
+                return;
+            }
+
+            if (leaseType === 'renewal' && lotType === 'family' && !area) {
+                resultEl.style.display = 'block';
+                resultDiv.innerHTML = '<div class="text-amber-600">Please enter the lot area (sqm) to compute the family lot renewal rate.</div>';
+                applyBtn.classList.add('hidden');
+                return;
+            }
 
             fetch('{{ route("burial-permits.compute-rental") }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                body: JSON.stringify({ year_established: {{ date('Y') - 10 }}, lot_type: lotType, area: area })
+                body: JSON.stringify({
+                    contract_type: leaseType,
+                    ordinance_period: ordinancePeriod,
+                    lot_type: lotType,
+                    area: area
+                })
             })
             .then(r => r.json())
             .then(data => {
-                const el = document.getElementById('rental-computation');
-                const result = document.getElementById('computation-result');
-                el.style.display = 'block';
+                resultEl.style.display = 'block';
 
-                if (data.forward_renewal) {
-                    result.innerHTML = '<div class="text-green-700 font-medium">Forward Renewal (next 10 years):</div>' +
-                        '<div class="mt-1">' + data.forward_renewal.breakdown + '</div>' +
-                        '<div class="mt-2 font-semibold">Total: ₱' + Number(data.forward_renewal.fee).toLocaleString(undefined, {minimumFractionDigits: 2}) + '</div>' +
-                        '<div class="text-xs text-gray-500 mt-1">Annual rate: ₱' + Number(data.forward_renewal.annual || 0).toLocaleString(undefined, {minimumFractionDigits: 2}) + '/yr</div>';
-                } else if (data.type === 'new') {
-                    result.innerHTML = '<div class="text-green-700 font-medium">New Lot Fee:</div>' +
+                if (data.type === 'new') {
+                    resultDiv.innerHTML = '<div class="text-green-700 font-medium">New Lot — Fixed Rate</div>' +
                         '<div class="mt-1">' + data.breakdown + '</div>';
+                    applyBtn.classList.remove('hidden');
+                    applyBtn.dataset.amount = data.fee;
+                } else if (data.type === 'renewal') {
+                    let periodLabel = '';
+                    if (data.ordinance_period === 'pre_2002') periodLabel = 'Before 2002';
+                    else if (data.ordinance_period === '2002_2013') periodLabel = '2002 – 2013';
+                    else periodLabel = '2013 – Present';
+
+                    resultDiv.innerHTML = '<div class="text-green-700 font-medium">Renewal — ' + periodLabel + ' Rate</div>' +
+                        '<div class="mt-1">' + data.breakdown + '</div>' +
+                        '<div class="mt-2 font-semibold text-green-800">Total for ' + data.years + ' years: ₱' + Number(data.fee).toLocaleString(undefined, {minimumFractionDigits: 2}) + '</div>' +
+                        '<div class="text-xs text-gray-500 mt-1">Annual rate: ₱' + Number(data.annual_rate).toLocaleString(undefined, {minimumFractionDigits: 2}) + (lotType === 'family' ? '/sqm' : '') + '/yr</div>';
+                    applyBtn.classList.remove('hidden');
+                    applyBtn.dataset.amount = data.fee;
                 }
             })
-            .catch(() => {});
+            .catch(() => {
+                resultEl.style.display = 'block';
+                resultDiv.innerHTML = '<div class="text-red-600">Error computing rental fee. Please try again.</div>';
+                applyBtn.classList.add('hidden');
+            });
         }
 
-        document.querySelector('[name="lot_type"]')?.addEventListener('change', computeRental);
-        document.querySelector('[name="lot_area"]')?.addEventListener('change', computeRental);
-        document.getElementById('lease_type')?.addEventListener('change', computeRental);
+        document.getElementById('apply-rental')?.addEventListener('click', function() {
+            const amount = this.dataset.amount;
+            if (amount) {
+                document.getElementById('total_amount').value = amount;
+                this.textContent = '✓ Applied';
+                this.classList.remove('bg-indigo-100', 'text-indigo-700', 'hover:bg-indigo-200');
+                this.classList.add('bg-green-100', 'text-green-700');
+            }
+        });
+
+        toggleProductType();
+        toggleLeaseFields();
     </script>
 </x-app-layout>

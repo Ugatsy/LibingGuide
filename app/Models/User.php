@@ -22,9 +22,9 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
-    public function isAdmin(): bool
+    public function isSuperAdmin(): bool
     {
-        return $this->role?->name === 'admin';
+        return $this->role?->name === 'super_admin';
     }
 
     public function isRccStaff(): bool
@@ -32,14 +32,14 @@ class User extends Authenticatable
         return $this->role?->name === 'rcc_staff';
     }
 
-    public function isTreasurer(): bool
+    public function isEngr(): bool
     {
-        return $this->role?->name === 'treasurer';
+        return $this->role?->name === 'engr';
     }
 
-    public function isMayor(): bool
+    public function isAdmin(): bool
     {
-        return $this->role?->name === 'mayor';
+        return $this->isSuperAdmin();
     }
 
     public function hasRole(string|array $roles): bool

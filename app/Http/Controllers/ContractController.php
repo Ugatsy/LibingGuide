@@ -40,6 +40,7 @@ class ContractController extends Controller
             'columbary_niche_id' => 'nullable|exists:columbary_niches,id',
             'contract_date'      => 'required|date',
             'contract_type'      => 'nullable|in:new,renewal',
+            'ordinance_period'   => 'nullable|in:pre_2002,2002_2013,2013_present',
             'lot_type'           => 'nullable|in:individual,family',
             'lot_area'           => 'nullable|numeric|min:0',
             'dimension'          => 'nullable|string|max:100',
@@ -98,6 +99,7 @@ class ContractController extends Controller
             'columbary_niche_id' => 'nullable|exists:columbary_niches,id',
             'contract_date'      => 'required|date',
             'contract_type'      => 'nullable|in:new,renewal',
+            'ordinance_period'   => 'nullable|in:pre_2002,2002_2013,2013_present',
             'lot_type'           => 'nullable|in:individual,family',
             'lot_area'           => 'nullable|numeric|min:0',
             'dimension'          => 'nullable|string|max:100',
@@ -132,8 +134,8 @@ class ContractController extends Controller
 
     public function approveTreasurer(Contract $contract)
     {
-        if (!auth()->user()->isTreasurer()) {
-            abort(403, 'Only the Treasurer can approve at this level.');
+        if (!auth()->user()->hasRole(['rcc_staff', 'super_admin'])) {
+            abort(403, 'Only RCC or Super Admin can mark Treasurer approval.');
         }
 
         $contract->update([
@@ -144,13 +146,13 @@ class ContractController extends Controller
             $contract->client->notify(new ContractApproved($contract, 'treasurer'));
         }
 
-        return back()->with('success', 'Contract approved by Treasurer.');
+        return back()->with('success', 'Treasurer signature verified & recorded.');
     }
 
     public function approveMayor(Contract $contract)
     {
-        if (!auth()->user()->isMayor()) {
-            abort(403, 'Only the Mayor can approve at this level.');
+        if (!auth()->user()->hasRole(['rcc_staff', 'super_admin'])) {
+            abort(403, 'Only RCC or Super Admin can mark Mayor approval.');
         }
 
         $contract->update([
@@ -161,6 +163,6 @@ class ContractController extends Controller
             $contract->client->notify(new ContractApproved($contract, 'mayor'));
         }
 
-        return back()->with('success', 'Contract approved by Mayor.');
+        return back()->with('success', 'Mayor signature verified & recorded.');
     }
 }

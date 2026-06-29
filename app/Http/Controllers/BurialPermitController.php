@@ -105,19 +105,29 @@ class BurialPermitController extends Controller
     public function computeRental(Request $request, RentalComputationService $service)
     {
         $validated = $request->validate([
-            'year_established' => 'required|integer|min:1900|max:' . date('Y'),
+            'contract_type'    => 'required|in:new,renewal',
+            'ordinance_period' => 'nullable|in:pre_2002,2002_2013,2013_present',
             'lot_type'         => 'required|in:individual,family',
             'area'             => 'nullable|numeric|min:0',
         ]);
 
-        $isNew = $validated['year_established'] >= (int) now()->year;
+        if ($validated['contract_type'] === 'new') {
+            return response()->json([
+                'type' => 'new',
+                'fee' => RentalComputationService::NEW_LOT_FEE,
+                'years' => 10,
+                'breakdown' => 'New lot fee: ₱' . number_format(RentalComputationService::NEW_LOT_FEE, 2),
+            ]);
+        }
 
-        $result = $isNew
-            ? $service->compute($validated['year_established'], $validated['lot_type'], $validated['area'])
-            : [
-                'back_rent' => $service->computeBackRent($validated['year_established'], $validated['lot_type'], $validated['area']),
-                'forward_renewal' => $service->computeForwardRenewal($validated['lot_type'], $validated['area'], 10),
-            ];
+        $period = $validated['ordinance_period'] ?? '2013_present';
+
+        $result = $service->computeRenewalByOrdinance(
+            $period,
+            $validated['lot_type'],
+            $validated['area'],
+            10
+        );
 
         return response()->json($result);
     }

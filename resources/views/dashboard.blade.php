@@ -6,14 +6,11 @@
             @php $role = auth()->user()->role?->name; @endphp
 
             @switch($role)
-                @case('admin')
-                    @include('dashboard.admin')
+                @case('super_admin')
+                    @include('dashboard.super-admin')
                     @break
-                @case('treasurer')
-                    @include('dashboard.treasurer')
-                    @break
-                @case('mayor')
-                    @include('dashboard.mayor')
+                @case('engr')
+                    @include('dashboard.engr')
                     @break
                 @default
                     @include('dashboard.rcc-staff')

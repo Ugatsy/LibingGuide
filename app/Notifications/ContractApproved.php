@@ -24,11 +24,11 @@ class ContractApproved extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $stageLabel = $this->stage === 'treasurer' ? 'Municipal Treasurer' : 'Mayor';
+        $stageLabel = $this->stage === 'treasurer' ? 'Treasurer' : 'Mayor';
         return (new MailMessage)
-            ->subject('Contract Approved by ' . $stageLabel . ' — HIMLAYAN')
+            ->subject('Contract — ' . $stageLabel . ' Signature Verified — HIMLAYAN')
             ->greeting('Dear ' . $notifiable->full_name . ',')
-            ->line('Your Cemetery Lease Contract (#' . $this->contract->id . ') has been approved by the **' . $stageLabel . '**.')
+            ->line('Your Cemetery Lease Contract (#' . $this->contract->id . ') — the **' . $stageLabel . '** physical signature has been verified and recorded.')
             ->line('**Plot:** ' . ($this->contract->plot?->plot_number ?? 'N/A'))
             ->line('**Contract Date:** ' . $this->contract->contract_date->format('M d, Y'))
             ->action('View Contract', url('/contracts/' . $this->contract->id))
@@ -52,10 +52,10 @@ class ContractApproved extends Notification implements ShouldQueue
             'client_id' => $notifiable->id,
             'type' => 'contract_approved',
             'channel' => 'database',
-            'subject' => 'Contract Approved by ' . $stageLabel,
+            'subject' => $stageLabel . ' Signature Verified',
             'body' => 'Your contract (#' . $this->contract->id . ') for lot '
                 . ($this->contract->plot?->plot_number ?? 'N/A')
-                . ' has been approved by the ' . $stageLabel . '.',
+                . ' — the ' . $stageLabel . ' physical signature has been verified.',
             'reference_type' => 'contract',
             'reference_id' => $this->contract->id,
             'status' => 'sent',

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'client_id', 'plot_id', 'pre_need_plan_id', 'columbary_niche_id',
-    'contract_date', 'lot_type', 'lot_area', 'dimension', 'contract_type',
+    'contract_date', 'lot_type', 'lot_area', 'dimension', 'contract_type', 'ordinance_period',
     'commencement_date', 'expiration_date',
     'total_amount', 'payment_type', 'status', 'pdf_path',
     'prepared_by', 'approved_by_treasurer_at', 'approved_by_mayor_at',

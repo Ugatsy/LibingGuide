@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cemetery;
+use App\Models\CemeteryPolygon;
 use App\Models\Grave;
 use App\Models\PathNode;
 use App\Services\DijkstraService;
@@ -10,15 +12,82 @@ use Illuminate\Support\Facades\DB;
 
 class CemeteryMapController extends Controller
 {
-    public function adminIndex()
+    public function adminIndex(Request $request)
     {
-        $polygon = DB::table('cemetery_polygons')->latest()->first();
+        $cemeteries = Cemetery::with('polygon')->get();
+
+        $selectedCemetery = null;
+        $polygon = null;
+
+        if ($cemeteries->isNotEmpty()) {
+            $cemeteryId = $request->query('cemetery_id', $cemeteries->first()->id);
+            $selectedCemetery = $cemeteries->find($cemeteryId) ?? $cemeteries->first();
+            $polygon = $selectedCemetery->polygon;
+        }
+
         $graves = Grave::all(['id', 'full_name', 'birth_date', 'death_date', 'section', 'plot_number', 'latitude', 'longitude', 'description', 'image_url']);
 
         return view('cemetery.admin', [
-            'polygon' => $polygon ? json_decode($polygon->geojson) : null,
+            'cemeteries' => $cemeteries,
+            'selectedCemetery' => $selectedCemetery,
+            'polygon' => $polygon?->geojson,
             'graves' => $graves,
         ]);
+    }
+
+    public function getCemeteries()
+    {
+        $cemeteries = Cemetery::with('polygon')->get()->map(fn($c) => [
+            'id' => $c->id,
+            'name' => $c->name,
+            'description' => $c->description,
+            'address' => $c->address,
+            'lat' => $c->lat,
+            'lng' => $c->lng,
+            'has_polygon' => $c->polygon !== null,
+        ]);
+
+        return response()->json($cemeteries);
+    }
+
+    public function saveCemetery(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'address' => 'nullable|string',
+            'lat' => 'nullable|numeric|between:-90,90',
+            'lng' => 'nullable|numeric|between:-180,180',
+            'entrance_node_id' => 'nullable|exists:path_nodes,id',
+        ]);
+
+        $cemetery = Cemetery::create($data);
+
+        return response()->json(['status' => 'ok', 'cemetery' => $cemetery]);
+    }
+
+    public function updateCemetery(Request $request, Cemetery $cemetery)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'address' => 'nullable|string',
+            'lat' => 'nullable|numeric|between:-90,90',
+            'lng' => 'nullable|numeric|between:-180,180',
+            'entrance_node_id' => 'nullable|exists:path_nodes,id',
+        ]);
+
+        $cemetery->update($data);
+
+        return response()->json(['status' => 'ok', 'cemetery' => $cemetery]);
+    }
+
+    public function deleteCemetery(Cemetery $cemetery)
+    {
+        $cemetery->polygon()?->delete();
+        $cemetery->delete();
+
+        return response()->json(['status' => 'ok']);
     }
 
     public function savePolygon(Request $request)
@@ -27,35 +96,49 @@ class CemeteryMapController extends Controller
             'geojson' => 'required|json',
             'area_sqm' => 'required|numeric',
             'area_hectares' => 'required|numeric',
+            'cemetery_id' => 'nullable|exists:cemeteries,id',
+            'cemetery_name' => 'required_without:cemetery_id|string|max:255',
         ]);
 
-        $existing = DB::table('cemetery_polygons')->latest()->first();
+        if ($data['cemetery_id'] ?? null) {
+            $cemetery = Cemetery::findOrFail($data['cemetery_id']);
+        } else {
+            $cemetery = Cemetery::create(['name' => $data['cemetery_name']]);
+        }
 
-        if ($existing) {
-            DB::table('cemetery_polygons')->where('id', $existing->id)->update([
+        $geojson = json_decode($data['geojson']);
+        $centroid = $this->getPolygonCentroid($geojson->coordinates[0] ?? []);
+        if ($centroid) {
+            $cemetery->update(['lat' => $centroid[1], 'lng' => $centroid[0]]);
+        }
+
+        $polygon = CemeteryPolygon::updateOrCreate(
+            ['cemetery_id' => $cemetery->id],
+            [
+                'name' => $cemetery->name,
                 'geojson' => $data['geojson'],
                 'area_sqm' => $data['area_sqm'],
                 'area_hectares' => $data['area_hectares'],
-                'updated_at' => now(),
-            ]);
-            return response()->json(['status' => 'updated', 'id' => $existing->id]);
-        }
+            ]
+        );
 
-        $id = DB::table('cemetery_polygons')->insertGetId([
-            'name' => 'Cemetery Boundary',
-            'geojson' => $data['geojson'],
-            'area_sqm' => $data['area_sqm'],
-            'area_hectares' => $data['area_hectares'],
-            'created_at' => now(),
-            'updated_at' => now(),
+        return response()->json([
+            'status' => $polygon->wasRecentlyCreated ? 'created' : 'updated',
+            'id' => $polygon->id,
+            'cemetery_id' => $cemetery->id,
         ]);
-
-        return response()->json(['status' => 'created', 'id' => $id]);
     }
 
-    public function getPolygon()
+    public function getPolygon(Request $request)
     {
-        $polygon = DB::table('cemetery_polygons')->latest()->first();
+        $cemeteryId = $request->query('cemetery_id');
+
+        if ($cemeteryId) {
+            $polygon = CemeteryPolygon::where('cemetery_id', $cemeteryId)->first();
+        } else {
+            $cemetery = Cemetery::with('polygon')->first();
+            $polygon = $cemetery?->polygon;
+        }
 
         if (!$polygon) {
             return response()->json(null);
@@ -63,7 +146,8 @@ class CemeteryMapController extends Controller
 
         return response()->json([
             'id' => $polygon->id,
-            'geojson' => json_decode($polygon->geojson),
+            'cemetery_id' => $polygon->cemetery_id,
+            'geojson' => $polygon->geojson,
             'area_sqm' => $polygon->area_sqm,
             'area_hectares' => $polygon->area_hectares,
         ]);
@@ -119,12 +203,20 @@ class CemeteryMapController extends Controller
     {
         $request->validate([
             'geojson' => 'required|json',
+            'cemetery_id' => 'nullable|exists:cemeteries,id',
+            'cemetery_name' => 'required_without:cemetery_id|string|max:255',
         ]);
 
         $data = json_decode($request->geojson);
 
         if (!isset($data->features) || !is_array($data->features)) {
             return response()->json(['status' => 'error', 'message' => 'Invalid GeoJSON format'], 422);
+        }
+
+        if ($request->cemetery_id ?? null) {
+            $cemetery = Cemetery::findOrFail($request->cemetery_id);
+        } else {
+            $cemetery = Cemetery::create(['name' => $request->cemetery_name]);
         }
 
         $polygonFeature = null;
@@ -154,24 +246,21 @@ class CemeteryMapController extends Controller
 
             $geojson = json_encode($polygonFeature->geometry);
 
-            $existing = DB::table('cemetery_polygons')->latest()->first();
-            if ($existing) {
-                DB::table('cemetery_polygons')->where('id', $existing->id)->update([
-                    'geojson' => $geojson,
-                    'area_sqm' => $areaSqm,
-                    'area_hectares' => $areaHectares,
-                    'updated_at' => now(),
-                ]);
-            } else {
-                DB::table('cemetery_polygons')->insert([
-                    'name' => 'Cemetery Boundary',
-                    'geojson' => $geojson,
-                    'area_sqm' => $areaSqm,
-                    'area_hectares' => $areaHectares,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+            $centroid = $this->getPolygonCentroid($polygonFeature->geometry->coordinates[0] ?? []);
+
+            if ($centroid) {
+                $cemetery->update(['lat' => $centroid[1], 'lng' => $centroid[0]]);
             }
+
+            CemeteryPolygon::updateOrCreate(
+                ['cemetery_id' => $cemetery->id],
+                [
+                    'name' => $cemetery->name,
+                    'geojson' => $geojson,
+                    'area_sqm' => $areaSqm,
+                    'area_hectares' => $areaHectares,
+                ]
+            );
         }
 
         foreach ($graveFeatures as $gf) {
@@ -201,6 +290,22 @@ class CemeteryMapController extends Controller
         ]);
     }
 
+    private function getPolygonCentroid(array $ring): ?array
+    {
+        if (empty($ring)) return null;
+
+        $sumX = 0;
+        $sumY = 0;
+        $count = count($ring);
+
+        foreach ($ring as $coord) {
+            $sumX += $coord[0];
+            $sumY += $coord[1];
+        }
+
+        return [$sumX / $count, $sumY / $count];
+    }
+
     private function calculateArea($ring)
     {
         $n = count($ring);
@@ -218,15 +323,22 @@ class CemeteryMapController extends Controller
         return abs($area * 6378137 * 6378137 / 2);
     }
 
-    public function seedGraves()
+    public function seedGraves(Request $request)
     {
-        $polygon = DB::table('cemetery_polygons')->latest()->first();
+        $cemeteryId = $request->query('cemetery_id');
+        $polygon = null;
+
+        if ($cemeteryId) {
+            $polygon = CemeteryPolygon::where('cemetery_id', $cemeteryId)->first();
+        } else {
+            $polygon = CemeteryPolygon::first();
+        }
 
         if (!$polygon) {
             return response()->json(['status' => 'error', 'message' => 'No cemetery boundary polygon found. Draw and save one first.'], 400);
         }
 
-        $geojson = json_decode($polygon->geojson);
+        $geojson = $polygon->geojson;
         $ring = $geojson->coordinates[0];
 
         $names = [
@@ -290,16 +402,6 @@ class CemeteryMapController extends Controller
             'image_url' => 'nullable|string|max:500',
         ]);
 
-        $polygon = DB::table('cemetery_polygons')->latest()->first();
-
-        if ($polygon) {
-            $geojson = json_decode($polygon->geojson);
-            $ring = $geojson->coordinates[0];
-            if (!$this->pointInPolygon([$data['longitude'], $data['latitude']], $ring)) {
-                return response()->json(['status' => 'error', 'message' => 'Grave location is outside the cemetery boundary'], 422);
-            }
-        }
-
         $grave = Grave::create($data);
 
         return response()->json(['status' => 'ok', 'grave' => $grave]);
@@ -355,13 +457,31 @@ class CemeteryMapController extends Controller
 
     public function findPathToGrave(Request $request, DijkstraService $dijkstra)
     {
-        $startLat = $request->input('start_lat');
-        $startLng = $request->input('start_lng');
         $endLat = $request->input('end_lat');
         $endLng = $request->input('end_lng');
+        $cemeteryId = $request->input('cemetery_id');
 
-        if (!$startLat || !$startLng || !$endLat || !$endLng) {
-            return response()->json(['error' => 'Missing coordinates'], 422);
+        if (!$endLat || !$endLng) {
+            return response()->json(['error' => 'Missing end coordinates'], 422);
+        }
+
+        // Find the cemetery entrance node
+        $entranceNode = null;
+
+        if ($cemeteryId) {
+            $cemetery = Cemetery::find($cemeteryId);
+            if ($cemetery && $cemetery->entrance_node_id) {
+                $entranceNode = PathNode::find($cemetery->entrance_node_id);
+            }
+        }
+
+        // Fallback: find first entrance node in the system
+        if (!$entranceNode) {
+            $entranceNode = PathNode::where('type', 'entrance')->first();
+        }
+
+        if (!$entranceNode) {
+            return response()->json(['error' => 'No entrance node configured for any cemetery'], 404);
         }
 
         $allNodes = PathNode::all();
@@ -369,37 +489,39 @@ class CemeteryMapController extends Controller
             return response()->json(['error' => 'No pathway nodes configured'], 404);
         }
 
-        $nearestToStart = null;
+        // Find nearest node to the end (grave) location
         $nearestToEnd = null;
-        $minStartDist = INF;
         $minEndDist = INF;
 
         foreach ($allNodes as $node) {
-            $dToStart = $dijkstra->calculateDistance($startLat, $startLng, $node->lat, $node->lng);
             $dToEnd = $dijkstra->calculateDistance($endLat, $endLng, $node->lat, $node->lng);
 
-            if ($dToStart < $minStartDist) {
-                $minStartDist = $dToStart;
-                $nearestToStart = $node;
-            }
             if ($dToEnd < $minEndDist) {
                 $minEndDist = $dToEnd;
                 $nearestToEnd = $node;
             }
         }
 
-        $path = $dijkstra->findShortestPath($nearestToStart, $nearestToEnd);
+        // Find path from entrance node to the nearest node of the grave
+        $path = $dijkstra->findShortestPath($entranceNode, $nearestToEnd);
 
         if (!$path) {
-            return response()->json(['error' => 'No path found between nearest nodes'], 404);
+            return response()->json(['error' => 'No path found from entrance to grave location'], 404);
         }
 
         $coords = $path['path']->map(fn($n) => [$n->lng, $n->lat])->toArray();
 
-        array_unshift($coords, [(float) $startLng, (float) $startLat]);
+        // Prepend entrance node and append grave location to the coordinates
+        array_unshift($coords, [(float) $entranceNode->lng, (float) $entranceNode->lat]);
         $coords[] = [(float) $endLng, (float) $endLat];
 
-        $totalDistance = $path['distance'] + $minStartDist + $minEndDist;
+        // Edge weights are in meters, Haversine returns km — convert to meters
+        $lastNodeToGraveDistMeters = $dijkstra->calculateDistance(
+            $path['path']->last()->lat, $path['path']->last()->lng,
+            $endLat, $endLng
+        ) * 1000;
+
+        $totalDistanceMeters = $path['distance'] + $lastNodeToGraveDistMeters;
 
         return response()->json([
             'path' => [
@@ -409,15 +531,14 @@ class CemeteryMapController extends Controller
                     'coordinates' => $coords,
                 ],
                 'properties' => [
-                    'distance' => $totalDistance,
-                    'distance_text' => $totalDistance < 1
-                        ? round($totalDistance * 1000, 0) . ' m'
-                        : round($totalDistance, 2) . ' km',
+                    'distance' => round($totalDistanceMeters / 1000, 4),
+                    'distance_text' => $totalDistanceMeters < 1000
+                        ? round($totalDistanceMeters, 0) . ' m'
+                        : round($totalDistanceMeters / 1000, 2) . ' km',
                 ],
             ],
-            'start_node' => ['id' => $nearestToStart->id, 'lat' => $nearestToStart->lat, 'lng' => $nearestToStart->lng],
+            'start_node' => ['id' => $entranceNode->id, 'lat' => $entranceNode->lat, 'lng' => $entranceNode->lng],
             'end_node' => ['id' => $nearestToEnd->id, 'lat' => $nearestToEnd->lat, 'lng' => $nearestToEnd->lng],
-            'distance_to_start_node' => round($minStartDist * 1000, 0) . ' m',
         ]);
     }
 }

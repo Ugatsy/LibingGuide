@@ -70,7 +70,7 @@ class DashboardController extends Controller
             'notifications', 'overdueInstallments', 'dueInstallments'
         );
 
-        if ($role === 'admin') {
+        if ($role === 'super_admin') {
             $data['recentActivityLogs'] = ActivityLog::with('user')
                 ->orderBy('created_at', 'desc')->take(10)->get();
         }

@@ -10,7 +10,14 @@ class Role
 {
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        if (!$request->user() || !$request->user()->hasRole($roles)) {
+        $allowed = collect($roles)
+            ->flatMap(fn(string $role) => explode(',', $role))
+            ->map(trim(...))
+            ->filter()
+            ->values()
+            ->all();
+
+        if (!$request->user() || !$request->user()->hasRole($allowed)) {
             abort(403, 'Unauthorized access.');
         }
         return $next($request);

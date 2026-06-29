@@ -62,30 +62,36 @@
             attribution: '&copy; Google',
         }).addTo(map);
 
-        const markers = [];
+        const plotLayers = [];
         PLOTS.forEach(plot => {
-            if (!plot.lat && !plot.lng) return;
             const color = plot.status === 'available' ? '#22c55e' : plot.status === 'reserved' ? '#f59e0b' : '#ef4444';
-            const icon = L.divIcon({
-                className: '',
-                html: `<div style="width:16px;height:16px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div>`,
-                iconSize: [16, 16],
-                iconAnchor: [8, 8],
-            });
-            const marker = L.marker([plot.lat, plot.lng], { icon })
-                .bindPopup(`<b>${plot.plot_number}</b><br>${plot.section ?? ''}<br>Status: ${plot.status}<br>Price: ₱${Number(plot.price).toLocaleString()}`);
-            marker._plotId = plot.id;
-            marker.addTo(map);
-            markers.push(marker);
+            const shape = plot.shape?.geometry || plot.shape;
+            if (shape && shape.coordinates) {
+                const geojson = shape.type ? shape : { type: 'Feature', geometry: shape, properties: {} };
+                const layer = L.geoJSON(geojson, {
+                    style: { color, fillColor: color, weight: 4, fillOpacity: 0.25 },
+                }).bindPopup(`<b>${plot.plot_number}</b><br>${plot.section ?? ''}<br>Status: ${plot.status}<br>Price: ₱${Number(plot.price).toLocaleString()}`);
+                layer._plotId = plot.id;
+                layer.addTo(map);
+                plotLayers.push(layer);
+            } else if (plot.lat && plot.lng) {
+                const marker = L.circleMarker([plot.lat, plot.lng], {
+                    radius: 8, color, fillColor: color, fillOpacity: 0.6, weight: 2,
+                }).bindPopup(`<b>${plot.plot_number}</b><br>${plot.section ?? ''}<br>Status: ${plot.status}<br>Price: ₱${Number(plot.price).toLocaleString()}`);
+                marker._plotId = plot.id;
+                marker.addTo(map);
+                plotLayers.push(marker);
+            }
         });
 
         document.querySelectorAll('.plot-entry').forEach(el => {
             el.addEventListener('click', function() {
                 const id = parseInt(this.dataset.plotId);
-                const marker = markers.find(m => m._plotId === id);
-                if (marker) {
-                    map.flyTo(marker.getLatLng(), 18, { duration: 0.5 });
-                    map.once('moveend', () => marker.openPopup());
+                const layer = plotLayers.find(l => l._plotId === id);
+                if (layer) {
+                    const center = layer.getBounds ? layer.getBounds().getCenter() : layer.getLatLng();
+                    map.flyTo(center, 18, { duration: 0.5 });
+                    map.once('moveend', () => layer.openPopup());
                 }
             });
         });

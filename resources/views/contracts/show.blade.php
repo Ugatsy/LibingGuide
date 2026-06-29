@@ -57,11 +57,11 @@
                             <span class="text-gray-500">→</span>
                             <div class="flex items-center gap-1">
                                 <span class="w-2 h-2 rounded-full {{ $contract->approved_by_treasurer_at ? 'bg-green-1000' : 'bg-gray-300' }}"></span>
-                                <span>Treasurer</span>
-                                @if(!$contract->approved_by_treasurer_at && $contract->prepared_by && auth()->user()->isTreasurer())
+                                <span>Treasurer (physical)</span>
+                                @if(!$contract->approved_by_treasurer_at && $contract->prepared_by && auth()->user()->hasRole(['rcc_staff', 'super_admin']))
                                     <form method="POST" action="{{ route('contracts.approve-treasurer', $contract) }}" class="inline">
                                         @csrf @method('PATCH')
-                                        <button type="submit" class="text-xs text-indigo-600 hover:text-indigo-900 ml-1">Approve</button>
+                                        <button type="submit" class="text-xs text-indigo-600 hover:text-indigo-900 ml-1">Mark Verified</button>
                                     </form>
                                 @endif
                                 @if($contract->approved_by_treasurer_at)
@@ -71,11 +71,11 @@
                             <span class="text-gray-500">→</span>
                             <div class="flex items-center gap-1">
                                 <span class="w-2 h-2 rounded-full {{ $contract->approved_by_mayor_at ? 'bg-green-1000' : 'bg-gray-300' }}"></span>
-                                <span>Mayor</span>
-                                @if(!$contract->approved_by_mayor_at && $contract->approved_by_treasurer_at && auth()->user()->isMayor())
+                                <span>Mayor (physical)</span>
+                                @if(!$contract->approved_by_mayor_at && $contract->approved_by_treasurer_at && auth()->user()->hasRole(['rcc_staff', 'super_admin']))
                                     <form method="POST" action="{{ route('contracts.approve-mayor', $contract) }}" class="inline">
                                         @csrf @method('PATCH')
-                                        <button type="submit" class="text-xs text-indigo-600 hover:text-indigo-900 ml-1">Approve</button>
+                                        <button type="submit" class="text-xs text-indigo-600 hover:text-indigo-900 ml-1">Mark Verified</button>
                                     </form>
                                 @endif
                                 @if($contract->approved_by_mayor_at)

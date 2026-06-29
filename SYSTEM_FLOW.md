@@ -1,4 +1,4 @@
-# Heritage Memorial Park — System Flow Guide
+# Cemetery Management System — System Flow Guide
 
 > A cemetery management system for Solano, Nueva Vizcaya.
 > Built with Laravel, MySQL, Leaflet maps, Dijkstra pathfinding.
@@ -27,6 +27,7 @@
 18. [Public-Facing Website](#18-public-facing-website)
 19. [End-to-End User Flows](#19-end-to-end-user-flows)
 20. [Technical Reference](#20-technical-reference)
+21. [Mapping Flow (Engr)](#mapping-flow-engr) — see [`MAPPING_FLOW.md`](MAPPING_FLOW.md)
 
 ---
 
@@ -34,7 +35,7 @@
 
 ### What This System Does
 
-The Heritage Memorial Park system manages the complete lifecycle of cemetery operations:
+The system manages the complete lifecycle of cemetery operations:
 
 - **Plot management** — create, map, and track burial lots
 - **Client management** — register families/representatives handling deceased paperwork
@@ -51,28 +52,32 @@ The Heritage Memorial Park system manages the complete lifecycle of cemetery ope
 
 ### Actors / User Roles
 
-| Role | Permissions |
-|------|-------------|
-| **RCC (Staff)** | Prepares permits, collects payments, creates contracts |
-| **Treasurer** | Approves contracts (second signatory) |
-| **Mayor** | Final approval of lease contracts |
-| **Admin** | Full system access |
-| **Public** | Browse lots/plans, search deceased, submit inquiries |
+| Role | Description | Modules |
+|------|-------------|---------|
+| **Client / Inquirer** | Subject of the contract. No system account — fills public forms to inquire, reserve lots/plans/niches, or search for loved ones. | Public-Facing Website (Browse Lots, Browse Plans, Reserve, Find a Loved One, Contact/Inquiry) |
+| **Staff / RCC** | Handles contract approvals (preparer), overview of sales & all contracts, grave seed availability & renewals, ordinance price changes, report generation. | Dashboard, Clients, Plots (view availability), Contracts & Billing (CRUD + approvals), Burial Permits (AF 58), Burials, Deceased Registry, Pre-Need Plans, Columbary Niches, Notifications, Inquiries, Reports |
+| **Engr** | Map plotter, grave plotter, overview of map/capacity. Manages cemetery boundaries, pathways, and plot mapping on the satellite view. See [`MAPPING_FLOW.md`](MAPPING_FLOW.md). | Dashboard (capacity stats), Plots (Lots), Cemetery Map & Graves, Pathways (Dijkstra), Legacy SVG Map |
+| **Super Admin** | Creates accounts for all roles, full control panel, can disable any feature/module, views activity logs, manages system settings. | **All modules** (full access), Activity Logs, User/Role Management, Control Panel (feature toggles), System Settings |
+
+> **Note:** Treasurer and Mayor sign physical papers (client carries the paper between offices). RCC verifies both signatures and marks both approvals in the system.
 
 ### Workflow at a Glance
 
 ```
-Client brings Death Certificate
+Client brings Death Certificate → RCC
         ↓
-Staff issues AF 58 Burial Permit (collects fee)
+RCC issues AF 58 Burial Permit, checks available grave,
+  sets ordinance price, assigns grave number
         ↓
-Staff computes lot rental (new/renewal rates)
+Client pays at Treasurer → gets physical signature
         ↓
-Client pays → Staff issues AF 51 Official Receipt
+Client gets physical signature from Mayor
         ↓
-Staff prepares Cemetery Lease Contract
+Client returns signed papers to RCC
         ↓
-Contract signed: RCC → Treasurer → Mayor
+RCC verifies signatures & approves both in system
+        ↓
+Contract complete → SMS/email reminder every 10 years for renewal
         ↓
 Burial scheduled & interment completed
         ↓
@@ -83,7 +88,7 @@ Deceased recorded in searchable registry
 
 ## 2. Navigation
 
-### Admin Navigation Bar
+### App Navigation Bar (Staff / Engr / Super Admin)
 
 ```
 [Dashboard] [Clients] [Lots & Burials] [Permits (AF 58)] [Contracts & Billing] [Services ▼] [Inquiries] [Notifications]
@@ -127,7 +132,7 @@ Deceased recorded in searchable registry
 | **Pre-Need Plans** | Count of active plans |
 | **Available Niches** | Columbary niches for sale |
 | **Burial Permits Issued** | Count of issued AF 58 permits |
-| **Pending Approvals** | Contracts awaiting Treasurer or Mayor sign-off |
+| **Pending Approvals** | Contracts awaiting RCC to verify physical signatures & approve |
 
 ### Recent Activity
 
@@ -240,8 +245,8 @@ Clients are **the bereaved family members or representatives** who:
 | `payment_type` | enum | `cash`, `credit_card`, `installment` |
 | `status` | enum | `active`, `completed`, `cancelled` |
 | **`prepared_by`** | FK → users | RCC who prepared it |
-| **`approved_by_treasurer_at`** | timestamp | When Treasurer signed |
-| **`approved_by_mayor_at`** | timestamp | When Mayor signed |
+| **`approved_by_treasurer_at`** | timestamp | When RCC verified Treasurer's physical signature (set by RCC) |
+| **`approved_by_mayor_at`** | timestamp | When RCC verified Mayor's physical signature (set by RCC) |
 | **`af_51_number`** | string | Official Receipt number |
 | **`af_51_date`** | date | Date of official receipt |
 | **`death_certificate_number`** | string | Reference to death cert |
@@ -261,27 +266,25 @@ Clients are **the bereaved family members or representatives** who:
 
 ### Workflow: Creating a Contract
 
-#### Step 1: Client brings Death Certificate
-The bereaved family brings the deceased's death certificate to the Municipal Treasurer's Office.
+#### Step 1: Client walks in to RCC
+Client brings the deceased's death certificate to the RCC office.
 
-#### Step 2: Staff Issues Burial Permit (AF 58)
+#### Step 2: RCC Issues Burial Permit (AF 58)
 See [Burial Permits module](#7-module-burial-permits-af-58).
 
-#### Step 3: Staff Computes Lot Rental
-- **New lot rate:** ₱2,000 (renewable every 10 years)
-- **Renewal rates:**
+#### Step 3: RCC Checks Available Grave & Sets Ordinance Price
+- Checks grave seed availability
+- Assigns a **grave number** to the client
+- Computes rental fee based on **ordinance period** and **lot type**:
 
-  | Years | Individual (per year) | Family (per sqm/yr) |
-  |-------|----------------------|---------------------|
-  | Before 2002 | ₱20 | ₱8 |
-  | 2002–2013 | ₱70 | ₱28 |
-  | 2013–present | ₱200 | ₱80 |
+  | Lease Type | Individual Lot | Family Lot |
+  |------------|----------------|------------|
+  | **New** | ₱2,000 (10 years) | ₱2,000 (10 years) |
+  | **Renewal — Before 2002** | ₱20/yr = ₱200/10yrs | Area × yrs × ₱8/sqm/yr |
+  | **Renewal — 2002 to 2013** | ₱70/yr = ₱700/10yrs | Area × yrs × ₱28/sqm/yr |
+  | **Renewal — 2013 to Present** | ₱200/yr = ₱2,000/10yrs | Area × yrs × ₱80/sqm/yr |
 
-#### Step 4: Collect Payment → Issue AF 51 Official Receipt
-- Record the AF 51 (Official Receipt) number on the contract
-- Payment modes: Cash, Credit Card, or Installment
-
-#### Step 5: Create the Contract
+#### Step 4: RCC Creates the Contract
 
 1. Go to **Contracts & Billing** → **+ New Contract**
 2. Select **Client**
@@ -289,38 +292,50 @@ See [Burial Permits module](#7-module-burial-permits-af-58).
 4. For **Lot**:
    - Select the **Plot** from dropdown
    - Choose **Lot Type**: Individual or Family
-   - Choose **Lease Type**: New (₱2,000 for 10 years) or Renewal
+   - Choose **Lease Type**: New or Renewal
+   - If **Renewal**, select the **Ordinance Period** (Before 2002 / 2002–2013 / 2013–Present)
    - Enter **Lot Area** (sqm) for family lots
    - Enter **Dimension** (e.g. "2.5m × 5.0m")
    - Enter **Commencement Date** and **Expiration Date**
-5. Enter **Total Amount**
-6. Choose **Payment Type** (show installment count if installment)
+5. **Total Amount** auto-computed from ordinance rates (click **Apply to Total Amount** to confirm)
+6. Choose **Payment Type** (cash / credit card / installment)
 7. Fill **AF 51 / Official Receipt** details
 8. Enter **Death Certificate Number**
 9. Submit
 
-#### Step 6: Signatory Workflow (3 signatures)
+#### Step 5: Client Pays at Treasurer
 
-The contract flows through:
+Client proceeds to the **Treasurer's office**, pays the fee, and receives the **physical signed paper** from the Treasurer.
 
-```
-RCC (Prepared) ──→ Municipal Treasurer ──→ Mayor
-     ✓                     ✓                    ✓
-```
+#### Step 6: Client Gets Mayor's Signature
 
-Each approval is tracked with a timestamp. The contract show page shows:
-- Green dots for completed steps
-- **Approve buttons** for the next pending step
-- Dates beneath each approved step
+Client proceeds to the **Mayor's office** and receives the **physical signed paper** from the Mayor.
 
-#### Step 7: Installments (if applicable)
+#### Step 7: Client Returns to RCC
+
+Client brings back both physically signed papers (Treasurer + Mayor) to the RCC.
+
+#### Step 8: RCC Verifies & Approves in System
+
+RCC verifies both physical signatures are present, then marks both approvals in the system:
+
+- **Approve Treasurer** → sets `approved_by_treasurer_at`
+- **Approve Mayor** → sets `approved_by_mayor_at`
+
+The contract show page shows green checks for each approval step.
+
+#### Step 9: Contract Complete — 10-Year Renewal Reminder
+
+Contract is now active. The system schedules an **SMS/email notification** to the client's contact number/email **every 10 years** when the lease is due for renewal.
+
+#### Step 10: Installments (if applicable)
 
 If payment type is **Installment**, the system auto-generates monthly schedules:
 - Equal monthly payments
 - Due dates: 1st of each month starting from creation
 - Tracked in the installments table on contract show page
 
-#### Step 8: Download PDF Contract
+#### Step 11: Download PDF Contract
 
 Click **Download PDF** on the contract show page to generate a DomPDF document with:
 - Client information
@@ -382,17 +397,31 @@ AF 58 is the official **Burial Permit** — a legal document required before int
 **`POST /burial-permits/compute-rental`**
 
 Parameters:
-- `year_established` — Year the lot was first occupied
+- `contract_type` — `new` or `renewal`
+- `ordinance_period` — `pre_2002`, `2002_2013`, or `2013_present` (required for renewal)
 - `lot_type` — `individual` or `family`
 - `area` — sqm (required for family lots)
 
-Returns:
+Returns (new):
 ```json
 {
   "type": "new",
   "fee": 2000,
   "years": 10,
   "breakdown": "New lot fee: ₱2,000.00"
+}
+```
+
+Returns (renewal):
+```json
+{
+  "type": "renewal",
+  "ordinance_period": "2013_present",
+  "fee": 2000,
+  "years": 10,
+  "annual": 200,
+  "annual_rate": 200,
+  "breakdown": "₱200/yr × 10 yrs = ₱2,000.00"
 }
 ```
 
@@ -748,11 +777,12 @@ The `DijkstraService` implements:
 | `burial_reminder` | Burial scheduled for tomorrow (daily cron) |
 | `installment_due` | Installment due in 3 days (daily cron) |
 | `overdue` | Installment past due |
+| `contract_renewal` | Lease expiring in 30 days (10-year renewal) |
 | `system` | General system notifications |
 
 ### Automated Reminders
 
-Two artisan commands run daily (via cron):
+Three artisan commands run daily (via cron):
 
 ```
 php artisan reminders:burial
@@ -760,6 +790,9 @@ php artisan reminders:burial
 
 php artisan reminders:installment
 — Notifies staff of payments due in 3 days
+
+php artisan reminders:contract-renewal
+— Sends SMS/email to client when lease is due for renewal (every 10 years)
 ```
 
 ### Viewing
@@ -780,7 +813,7 @@ php artisan reminders:installment
 ### Sources
 
 1. **Public website** — Contact form on the welcome page
-2. **Admin** — Staff can manually create inquiries
+2. **Admin Panel** — Staff can manually create inquiries
 
 ### Inquiry Fields
 
@@ -922,26 +955,42 @@ Simple success message after submitting a reservation.
 ### Flow A: Standard Burial (Walk-in Client)
 
 ```
-[CLIENT]                         [STAFF]                        [SYSTEM]
-────────                         ──────                         ──────
+[CLIENT]                         [RCC]                          [SYSTEM]
+────────                         ────                           ──────
 Brings Death Certificate         
        │                              
        └────────► 1. Verify death cert
                   2. Issue AF 58 Burial      ◄── Creates BurialPermit
                      Permit (collect ₱200)       (auto-gen permit #)
-                  3. Compute lot rental      ◄── Uses RentalComputationService
-                     (new/renewal rates)
-                  4. Collect payment          ◄── Records af_51_number on contract
-                     → Issue AF 51 OR
-                  5. Create Contract          ◄── Contract created with:
-                     (RCC prepares)               lot_type, area, dimensions,
-       ◄──────── 6. Client signs contract         commencement/expiration dates
-                  7. Treasurer signs          ◄── approved_by_treasurer_at
-       ◄──────── 8. Mayor signs              ◄── approved_by_mayor_at
-                  9. Release original copy
-                 10. Schedule burial          ◄── Burial created, plot updated
-                 11. Approve burial           ◄── burial_status=completed
-                 12. Record in registry       ◄── Shows in Deceased Registry
+                  3. Check grave availability
+                     Set ordinance price
+                     Assign grave number
+                  4. Create Contract          ◄── Contract created with
+                     (RCC prepares)               lot_type, total_amount,
+                                                   grave_number, etc.
+                  5. Client signs contract     
+       ◄────────                              (RCC marks contract prepared)
+
+Client → Treasurer
+────────────────────
+  Pays fee → gets physical signed paper
+
+Client → Mayor
+────────────────
+  Gets physical signed paper
+
+Client → Back to RCC
+──────────────────────
+       └────────► 6. RCC verifies signatures ◄── approved_by_treasurer_at
+                      Approves both in system    approved_by_mayor_at
+       ◄──────── 7. Release original copy
+                  8. Schedule burial          ◄── Burial created, plot updated
+                  9. Approve burial           ◄── burial_status=completed
+                  10. Record in registry      ◄── Shows in Deceased Registry
+                                               
+                  [10-YEAR RENEWAL]
+                  System sends SMS/email ◄── reminders:contract-renewal
+                  to client when lease expires
 ```
 
 ### Flow B: Online Reservation (Website Visitor)
@@ -997,7 +1046,7 @@ Clicks "Show Path"
 Visitor follows path to grave
 ```
 
-### Flow D: Admin Setting Up Cemetery
+### Flow D: Engr Setting Up Cemetery
 
 ```
 [ADMIN]                           [SYSTEM]
@@ -1076,6 +1125,7 @@ columbary_niches ─── contracts
 |---------|-------------|----------|
 | `php artisan reminders:burial` | Notify staff of tomorrow's burials | Daily |
 | `php artisan reminders:installment` | Notify staff of upcoming installment due dates | Daily |
+| `php artisan reminders:contract-renewal` | Send SMS/email to client when lease is due for renewal | Daily |
 | `php artisan plots:detect-from-tiles` | Auto-detect graves from satellite tile imagery | Manual |
 
 ### API Endpoints
